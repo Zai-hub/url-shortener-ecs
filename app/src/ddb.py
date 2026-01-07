@@ -1,7 +1,14 @@
 import os, boto3
 
 # TABLE_NAME must be provided via ECS task environment
-_table = boto3.resource("dynamodb").Table(os.environ["TABLE_NAME"])
+#_table = boto3.resource("dynamodb").Table(os.environ["TABLE_NAME"])
+
+dynamodb = boto3.resource(
+    "dynamodb",
+    endpoint_url=os.getenv("DYNAMODB_ENDPOINT"))
+
+_table = dynamodb.Table(os.environ["TABLE_NAME"])
+
 
 def put_mapping(short_id: str, url: str):
     _table.put_item(Item={"id": short_id, "url": url})
