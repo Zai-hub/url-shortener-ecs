@@ -12,3 +12,4 @@ terraform.tfstate*
 **/.terraform/
 **/.terraform.lock.hcl
 .localstack/
+*.tfvars
