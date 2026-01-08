@@ -1,4 +1,5 @@
 .env
+--pycache--/
 .DS_Store
 
 __pycache__/
@@ -8,9 +9,10 @@ __pycache__/
 .plan
 terraform.tfstate*
 .pytest_cache
-**/.terraform.lock.hcl
+
 **/.terraform/
 *.tfstate
 *.tfstate.*
-
-**/.terraform.lock.hcl
+*.tfvars
+.terraform.lock.hcl
+.localstack/
