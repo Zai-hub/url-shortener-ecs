@@ -5,3 +5,11 @@ variable "vpc_cidr" {
 variable "az_count" {
   type = number
 }
+
+variable "vpc_endpoints_sg_id" {
+  type = string
+}
+
+variable "aws_region" {
+  type = string
+}
