@@ -1,0 +1,13 @@
+aws_region = "eu-west-2"
+aws_profile = ""
+vpc_cidr = "172.17.0.0/16"
+az_count = 2
+app_port = 8080
+project_name  = "url-shortener-ecs"
+state_bucket  = "url-shortener-tf-state"
+lock_table    = "url-shortener-tf-lock"
+repository_name = "url-shortener"
+domain_name = "zaitech.uk"
+subdomain = "ecs"
+public_subnet = "value"
+github_repo = "zai-hub/url-shortener-ecs"
