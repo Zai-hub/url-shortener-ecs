@@ -94,7 +94,7 @@ jobs:
             --deployment-group-name "${{ secrets.CODEDEPLOY_GROUP }}" \
             --deployment-config-name "CodeDeployDefault.ECSCanary10Percent5Minutes" \
             --revision revisionType=AppSpecContent,appSpecContent={content="$(cat appspec.yaml)"} \
-            --file-exists-behaviour OVERWRITE
+            --file-exists-behavior OVERWRITE
 
       - name: Health Checks
         run: |
