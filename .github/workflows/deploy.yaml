@@ -99,7 +99,43 @@ jobs:
 
           echo "DeploymentId: $DEPLOYMENT_ID"
 
+          echo "DeploymentId: $DEPLOYMENT_ID"
+
+          set +e
           aws deploy wait deployment-successful --deployment-id "$DEPLOYMENT_ID"
+          WAIT_RC=$?
+          set -e
+
+          if [ $WAIT_RC -ne 0 ]; then
+            echo "CodeDeploy deployment FAILED. Details:"
+            aws deploy get-deployment \
+              --deployment-id "$DEPLOYMENT_ID" \
+              --query 'deploymentInfo.{status:status,error:errorInformation,createTime:createTime,completeTime:completeTime,autoRollback:autoRollbackConfiguration,rollbackInfo:rollbackInfo}' \
+              --output json
+
+            echo "Recent ECS service events:"
+            aws ecs describe-services \
+              --cluster url-shortener-ecs-cluster \
+              --services url-shortener-ecs-service \
+              --query 'services[0].events[0:15].[createdAt,message]' \
+              --output table
+
+            echo "Task sets:"
+            aws ecs describe-task-sets \
+              --cluster url-shortener-ecs-cluster \
+              --service url-shortener-ecs-service \
+              --query 'taskSets[*].{primary:primary,status:status,stability:stabilityStatus,desired:computedDesiredCount,taskDef:taskDefinition}' \
+              --output table
+
+            echo "Target group health (blue/green):"
+            for tg in url-shortener-ecs-blue-tg url-shortener-ecs-green-tg; do
+              ARN=$(aws elbv2 describe-target-groups --names "$tg" --query 'TargetGroups[0].TargetGroupArn' --output text)
+              echo "TG $tg => $ARN"
+              aws elbv2 describe-target-health --target-group-arn "$ARN" --output table
+            done
+
+            exit 1
+          fi
             
 
       - name: Health Checks
