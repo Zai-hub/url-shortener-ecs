@@ -19,9 +19,6 @@ jobs:
   terraform:
     name: Terraform Plan and Apply
     runs-on: ubuntu-latest
-    env:
-      TF_VAR_az_count: 2
-
     defaults:
       run:
         working-directory: ./infra/envs/dev
@@ -46,14 +43,14 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -input=false
 
       - name: Terraform Plan
-        run: terraform plan
+        run: terraform plan -input=false
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply
+        run: terraform apply -auto-approve -input=false
 
   deploy:
     name: Trigger CodeDeploy
@@ -78,7 +75,7 @@ jobs:
             --deployment-group-name ${{ secrets.CODEDEPLOY_GROUP }} \
             --deployment-config-name CodeDeployDefault.ECSCanary10Percent5Minutes
 
-      - name: Health Check
+      - name: Health Checks
         run: |
           sleep 30
           curl -f https://ecs.zaitech.uk/healthz || exit 1
