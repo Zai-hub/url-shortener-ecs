@@ -31,9 +31,9 @@ jobs:
     
     - name: Build AppSpec and trigger CodeDeploy
       env:
-        cluster: url-shortener-ecs-cluster
-        service: url-shortener-ecs-service
-        container_name: url-shortener-ecs-container
+        CLUSTER: url-shortener-ecs-cluster
+        SERVICE: url-shortener-ecs-service
+        CONTAINER_NAME: url-shortener-ecs-container
         image_url: ${{ secrets.ECR_REPO }}:${{ github.sha}}
       run: |
         set -euo pipefail
