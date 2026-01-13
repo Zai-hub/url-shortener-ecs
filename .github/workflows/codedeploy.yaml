@@ -8,7 +8,7 @@ on:
       - '.github/workflows/codedeploy.yaml'
   workflow_dispatch:
     inputs:
-      image-tag:
+      image_tag:
         required: false
 
 env:
@@ -29,12 +29,16 @@ jobs:
         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
         aws-region: ${{ secrets.AWS_REGION }}
     
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+    
     - name: Build AppSpec and trigger CodeDeploy
       env:
         CLUSTER: url-shortener-ecs-cluster
         SERVICE: url-shortener-ecs-service
         CONTAINER_NAME: url-shortener-ecs-container
-        ECR_REPOSITORY: ${{ secrets.ECR_REPO }}:${{ github.sha}}
+        ECR_REPOSITORY: ${{ secrets.ECR_REPO }}
       run: |
         set -euo pipefail
 
@@ -66,16 +70,16 @@ jobs:
                     --output text)
 
                   cat > appspec.yaml <<EOF
-          version: 0.0
-          Resources:
-            - TargetService:
-                Type: AWS::ECS::Service
-                Properties:
-                  TaskDefinition: $NEW_TD_ARN
-                  LoadBalancerInfo:
-                    ContainerName: url-shortener-ecs-container
-                    ContainerPort: 8080
-          EOF
+                  version: 0.0
+                  Resources:
+                    - TargetService:
+                      Type: AWS::ECS::Service
+                      Properties:
+                      TaskDefinition: $NEW_TD_ARN
+                      LoadBalancerInfo:
+                      ContainerName: url-shortener-ecs-container
+                      ContainerPort: 8080
+                  EOF
           
           APPSPEC_JSON=$(jq -Rs . < appspec.yaml)
           APPSPEC_SHA=$(sha256sum appspec.yaml | awk '{print $1}')
