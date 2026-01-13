@@ -81,9 +81,9 @@ jobs:
             - TargetService:
                 Type: AWS::ECS::Service
                 Properties:
-                  TaskDefinition: "$TASK_DEF"
+                  TaskDefinition: $TASK_DEF
                   LoadBalancerInfo:
-                    ContainerName: "url-shortener-ecs-container"
+                    ContainerName: url-shortener-ecs-container
                     ContainerPort: 8080
           EOF
 
