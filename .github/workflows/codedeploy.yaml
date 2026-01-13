@@ -5,7 +5,11 @@ on:
     branches: [ main ]
     paths:
       - 'app/**'
+      - '.github/workflows/codedeploy.yaml'
   workflow_dispatch:
+    inputs:
+      image-tag:
+        required: false
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
