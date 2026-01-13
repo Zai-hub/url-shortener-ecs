@@ -1,0 +1,95 @@
+name: Trigger CodeDeploy
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'app/**'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+
+jobs:
+  codedeploy:
+    name: Deploy CodeDeploy
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ secrets.AWS_REGION }}
+    
+    - name: Build AppSpec and trigger CodeDeploy
+      env:
+        cluster: url-shortener-ecs-cluster
+        service: url-shortener-ecs-service
+        container_name: url-shortener-ecs-container
+        image_url: ${{ secrets.ECR_REPO }}:${{ github.sha}}
+      run: |
+        set -euo pipefail
+
+                  CURRENT_TD_ARN=$(aws ecs describe-services \
+                    --cluster "$CLUSTER" \
+                    --services "$SERVICE" \
+                    --query "services[0].taskDefinition" \
+                    --output text)
+
+                  aws ecs describe-task-definition \
+                    --task-definition "$CURRENT_TD_ARN" \
+                    --query "taskDefinition" \
+                    --output json > td.json
+
+                  jq --arg IMG "$IMAGE_URI" --arg NAME "$CONTAINER_NAME" '
+                    .containerDefinitions |= map(if .name == $NAME then .image = $IMG else . end)
+                    | del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)
+                  ' td.json > td-new.json
+
+                  NEW_TD_ARN=$(aws ecs register-task-definition \
+                    --cli-input-json file://td-new.json \
+                    --query "taskDefinition.taskDefinitionArn" \
+                    --output text)
+
+                  cat > appspec.yaml <<EOF
+          version: 0.0
+          Resources:
+            - TargetService:
+                Type: AWS::ECS::Service
+                Properties:
+                  TaskDefinition: $TASK_DEF
+                  LoadBalancerInfo:
+                    ContainerName: url-shortener-ecs-container
+                    ContainerPort: 8080
+          EOF
+          
+          APPSPEC_JSON=$(jq -Rs . < appspec.yaml)
+          APPSPEC_SHA=$(sha256sum appspec.yaml | awk '{print $1}')
+
+          DEPLOYMENT_ID=$(aws deploy create-deployment \
+            --application-name "${{ secrets.CODEDEPLOY_APP }}" \
+            --deployment-group-name "${{ secrets.CODEDEPLOY_GROUP }}" \
+            --deployment-config-name "CodeDeployDefault.ECSCanary10Percent5Minutes" \
+            --revision "revisionType=AppSpecContent,appSpecContent={content=$APPSPEC_JSON,sha256=$APPSPEC_SHA}" \
+            --query "deploymentId" --output text)
+
+          echo "DeploymentId: $DEPLOYMENT_ID"
+          aws deploy wait deployment-successful --deployment-id "$DEPLOYMENT_ID"
+
+    - name: Health Checks
+      run: |
+          set -euo pipefail
+          for i in {1..30}; do
+            if curl -fsS https://ecs.zaitech.uk/healthz; then
+              echo "Healthy!"
+              exit 0
+            fi
+            echo "Not healthy yet, retrying... ($i/30)"
+            sleep 10
+          done
+          echo "Service never became healthy"
+          exit 1
