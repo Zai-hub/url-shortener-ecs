@@ -7,9 +7,7 @@ app = FastAPI()
 
 @app.get("/healthz")
 def health():
-    return {"status": "fail"}
-
-# "ts": int(time.time()), "version": "1.0"
+    return {"status": "ok", "ts": int(time.time()), "version": "1.0"}
 
 @app.post("/shorten")
 async def shorten(req: Request):
