@@ -10,10 +10,12 @@ variable "aws_profile" {
 
 variable "vpc_cidr" {
   type = string
+  default = ""
 }
 
 variable "az_count" {
   type = number
+  default = ""
 }
 
 variable "app_port" {
@@ -23,33 +25,41 @@ variable "app_port" {
 
 variable "project_name" {
   type = string
+  default = ""
 }
 
 variable "github_repo" {
   type = string
+  default = ""
 }
 
 variable "state_bucket" {
   type = string
+  default = ""
 }
 
 variable "lock_table" {
   type = string
+  default = ""
 }
 
 variable "repository_name" {
   type = string
+  default = ""
 }
 
 variable "domain_name" {
   type = string
+  default = ""
 }
 
 variable "subdomain" {
   type = string
+  default = ""
 }
 
 variable "public_subnet" {
   type = string
+  default = ""
 }
 
