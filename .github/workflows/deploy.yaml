@@ -69,32 +69,28 @@ jobs:
 
       - name: Trigger CodeDeploy
         run: |
-                TASK_DEF=$(aws ecs describe-task-definition --task-definition url-shortener-ecs-task --query 'taskDefinition.taskDefinitionArn' --output text)
-                
-                APPSPEC=$(cat <<EOF
-                {
-                  "version": 1,
-                  "Resources": [{
-                    "TargetService": {
-                      "Type": "AWS::ECS::Service",
-                      "Properties": {
-                        "TaskDefinition": "$TASK_DEF",
-                        "LoadBalancerInfo": {
-                          "ContainerName": "url-shortener-ecs-container",
-                          "ContainerPort": 8080
-                        }
-                      }
-                    }
-                  }]
-                }
-                EOF
-                )
-                    
-                aws deploy create-deployment \
-                  --application-name ${{ secrets.CODEDEPLOY_APP }} \
-                  --deployment-group-name ${{ secrets.CODEDEPLOY_GROUP }} \
-                  --deployment-config-name CodeDeployDefault.ECSCanary10Percent5Minutes \
-                  --revision "{\"revisionType\":\"AppSpecContent\",\"appSpecContent\":{\"content\":\"$(echo $APPSPEC | jq -c .)\"}}"
+          TASK_DEF=$(aws ecs describe-task-definition \
+            --task-definition url-shortener-ecs-task \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+            cat > appspec.yaml <<EOF
+            version: 0.0
+    Resources:
+      - TargetService:
+          Type: AWS::ECS::Service
+          Properties:
+          TaskDefinition: "$TASK_DEF"
+          LoadBalancerInfo:
+          ContainerName: "url-shortener-ecs-container"
+          ContainerPort: 8080
+            EOF
+
+            aws deploy create-deployment \
+            --application-name "${{ secrets.CODEDEPLOY_APP }}" \
+            --deployment-group-name "${{ secrets.CODEDEPLOY_GROUP }}" \
+            --deployment-config-name "CodeDeployDefault.ECSCanary10Percent5Minutes" \
+            --revision revisionType=AppSpecContent,appSpecContent={content=file://appspec.yaml}
 
       - name: Health Checks
         run: |
