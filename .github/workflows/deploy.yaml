@@ -119,14 +119,7 @@ jobs:
               --services url-shortener-ecs-service \
               --query 'services[0].events[0:15].[createdAt,message]' \
               --output table
-
-            echo "Task sets:"
-            aws ecs describe-task-sets \
-              --cluster url-shortener-ecs-cluster \
-              --service url-shortener-ecs-service \
-              --query 'taskSets[*].{primary:primary,status:status,stability:stabilityStatus,desired:computedDesiredCount,taskDef:taskDefinition}' \
-              --output table
-
+              
             echo "Target group health (blue/green):"
             for tg in url-shortener-ecs-blue-tg url-shortener-ecs-green-tg; do
               ARN=$(aws elbv2 describe-target-groups --names "$tg" --query 'TargetGroups[0].TargetGroupArn' --output text)
