@@ -38,7 +38,7 @@ jobs:
         CLUSTER: url-shortener-ecs-cluster
         SERVICE: url-shortener-ecs-service
         CONTAINER_NAME: url-shortener-ecs-container
-        ECR_REPOSITORY: ${{ secrets.ECR_REPO }}
+        ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
       run: |
         set -euo pipefail
 
@@ -73,12 +73,12 @@ jobs:
                   version: 0.0
                   Resources:
                     - TargetService:
-                      Type: AWS::ECS::Service
-                      Properties:
-                      TaskDefinition: $NEW_TD_ARN
-                      LoadBalancerInfo:
-                      ContainerName: url-shortener-ecs-container
-                      ContainerPort: 8080
+                        Type: AWS::ECS::Service
+                        Properties:
+                          TaskDefinition: $NEW_TD_ARN
+                          LoadBalancerInfo:
+                            ContainerName: url-shortener-ecs-container
+                            ContainerPort: 8080
                   EOF
           
           APPSPEC_JSON=$(jq -Rs . < appspec.yaml)
