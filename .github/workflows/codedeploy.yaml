@@ -34,9 +34,15 @@ jobs:
         CLUSTER: url-shortener-ecs-cluster
         SERVICE: url-shortener-ecs-service
         CONTAINER_NAME: url-shortener-ecs-container
-        image_url: ${{ secrets.ECR_REPO }}:${{ github.sha}}
+        ECR_REPOSITORY: ${{ secrets.ECR_REPO }}:${{ github.sha}}
       run: |
         set -euo pipefail
+
+                  TAG="${{ inputs.image_tag }}"
+                  if [ -z "$TAG" ]; then TAG="${GITHUB_SHA}"; fi
+
+                  IMAGE_URI="${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:${TAG}"
+                  echo "Deploying image: $IMAGE_URI"
 
                   CURRENT_TD_ARN=$(aws ecs describe-services \
                     --cluster "$CLUSTER" \
@@ -65,7 +71,7 @@ jobs:
             - TargetService:
                 Type: AWS::ECS::Service
                 Properties:
-                  TaskDefinition: $TASK_DEF
+                  TaskDefinition: $NEW_TD_ARN
                   LoadBalancerInfo:
                     ContainerName: url-shortener-ecs-container
                     ContainerPort: 8080
