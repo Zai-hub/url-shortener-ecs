@@ -89,7 +89,7 @@ resource "aws_ecs_service" "app" {
     lifecycle {
     ignore_changes = [
           task_definition,
-          load_balancer
+          # load_balancer
           # network_configuration
     ]
     }
