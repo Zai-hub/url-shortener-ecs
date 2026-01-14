@@ -52,9 +52,46 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve -input=false
 
+deploy:
+    name: Trigger CodeDeploy
+    needs: terraform
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read   
+
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Register new task definition revision
+        id: new-task-def
+        run: |
+          CURRENT=$(aws ecs describe-task-definition --task-definition url-shortener-ecs-task)
+          
+          NEW_ARN=$(echo $CURRENT | jq -r '.taskDefinition | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' | \
+            aws ecs register-task-definition --cli-input-json file:///dev/stdin --query 'taskDefinition.taskDefinitionArn' --output text)
+          
+          echo "new_task_arn=$NEW_ARN" >> $GITHUB_OUTPUT
+
+      - name: Trigger CodeDeploy
+        run: |
+          APPSPEC='{"version":1,"Resources":[{"TargetService":{"Type":"AWS::ECS::Service","Properties":{"TaskDefinition":"${{ steps.new-task-def.outputs.new_task_arn }}","LoadBalancerInfo":{"ContainerName":"url-shortener-ecs-container","ContainerPort":8080}}}}]}'
+          
+          aws deploy create-deployment \
+            --application-name url-shortener-ecs-app \
+            --deployment-group-name url-shortener-ecs-deployment-group \
+            --deployment-config-name CodeDeployDefault.ECSCanary10Percent5Minutes \
+            --revision "{\"revisionType\":\"AppSpecContent\",\"appSpecContent\":{\"content\":\"$APPSPEC\"}}"
+
+      - name: Wait for deployment
+        run: sleep 60
+
+      - name: Health Check
+        run: |
+          curl -f https://ecs.zaitech.uk/healthz || exit 1
+          echo "✅ Deployment successful!"
