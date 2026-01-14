@@ -79,7 +79,7 @@ jobs:
           EOF
           
           APPSPEC_JSON=$(jq -Rs . < appspec.yaml)
-          APPSPEC_SHA=$(printf % "$APPSPEC_JSON" | sha256sum | awk '{print $1}')
+          APPSPEC_SHA=$(printf '%s' "$APPSPEC_JSON" | sha256sum | awk '{print $1}')
 
           DEPLOYMENT_ID=$(aws deploy create-deployment \
             --application-name "${{ secrets.CODEDEPLOY_APP }}" \
