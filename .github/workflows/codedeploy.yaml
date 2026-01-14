@@ -67,16 +67,16 @@ jobs:
                     --output text)
 
           printf '%s\n' \
-          'version: 0.0' \
-          'Resources:' \
-          '- TargetService:' \
-          '    Type: AWS::ECS::Service' \
-          '    Properties:' \ 
-          "      TaskDefinition: $NEW_TD_ARN" \
-          '      LoadBalancerInfo:' \
-          "        ContainerName: url-shortener-ecs-container" \
-          '        ContainerPort: 8080' \
-          > appspec.yaml
+            'version: 0.0' \
+            'Resources:' \
+            '- TargetService:' \
+            '    Type: AWS::ECS::Service' \
+            '    Properties:' \
+            "      TaskDefinition: $NEW_TD_ARN" \
+            '      LoadBalancerInfo:' \
+            "        ContainerName: url-shortener-ecs-container" \
+            '        ContainerPort: 8080' \
+            > appspec.yaml
           cat appspec.yaml
           
           APPSPEC_JSON=$(jq -Rs . < appspec.yaml)
@@ -85,7 +85,7 @@ jobs:
             --application-name "${{ secrets.CODEDEPLOY_APP }}" \
             --deployment-group-name "${{ secrets.CODEDEPLOY_GROUP }}" \
             --deployment-config-name "CodeDeployDefault.ECSCanary10Percent5Minutes" \
-            --revision "revisionType=AppSpecContent, appSpecContent={content=$APPSPEC_JSON}" \
+            --revision "revisionType=AppSpecContent,appSpecContent={content=$APPSPEC_JSON}" \
             --query "deploymentId" \
             --output text)
 
