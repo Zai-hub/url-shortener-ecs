@@ -85,8 +85,9 @@ jobs:
             --application-name "${{ secrets.CODEDEPLOY_APP }}" \
             --deployment-group-name "${{ secrets.CODEDEPLOY_GROUP }}" \
             --deployment-config-name "CodeDeployDefault.ECSCanary10Percent5Minutes" \
-            --revision "revisionType=AppSpecContent,appSpecContent={content=$APPSPEC_JSON,sha256=$APPSPEC_SHA}" \
-            --query "deploymentId" --output text)
+            --revision "revisionType=AppSpecContent,appSpecContent={content=$APPSPEC_JSON}" \
+            --query "deploymentId" \
+            --output text)
 
           echo "DeploymentId: $DEPLOYMENT_ID"
           aws deploy wait deployment-successful --deployment-id "$DEPLOYMENT_ID"
