@@ -16,3 +16,4 @@ def put_mapping(short_id: str, url: str):
 def get_mapping(short_id: str):
     resp = _table.get_item(Key={"id": short_id})
     return resp.get("Item")
+
