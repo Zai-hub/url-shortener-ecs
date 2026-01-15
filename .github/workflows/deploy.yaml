@@ -69,11 +69,21 @@ jobs:
       - name: Register new task definition revision
         id: new-task-def
         run: |
-          CURRENT=$(aws ecs describe-task-definition --task-definition url-shortener-ecs-task)
-          NEW_ARN=$(echo $CURRENT | jq -r '.taskDefinition | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' | \
-            aws ecs register-task-definition --cli-input-json file:///dev/stdin --query 'taskDefinition.taskDefinitionArn' --output text)
-          echo "new_task_arn=$NEW_ARN" >> $GITHUB_OUTPUT
-      
+          
+          aws ecs describe-task-definition \
+            --task-definition url-shortener-ecs-task \
+            --query 'taskDefinition' | \
+            jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
+            > task-def.json
+    
+    
+            NEW_ARN=$(aws ecs register-task-definition \
+              --cli-input-json file://task-def.json \
+              --query 'taskDefinition.taskDefinitionArn' \
+              --output text)
+            
+            echo "new_task_arn=$NEW_ARN" >> $GITHUB_OUTPUT
+            echo "New task definition: $NEW_ARN"
       - name: Trigger CodeDeploy
         run: |
           APPSPEC='{"version":1,"Resources":[{"TargetService":{"Type":"AWS::ECS::Service","Properties":{"TaskDefinition":"${{ steps.new-task-def.outputs.new_task_arn }}","LoadBalancerInfo":{"ContainerName":"url-shortener-ecs-container","ContainerPort":8080}}}}]}'
