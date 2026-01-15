@@ -25,4 +25,3 @@ def resolve(short_id: str):
     if not item:
         raise HTTPException(404, "not found")
     return RedirectResponse(item["url"])
-
