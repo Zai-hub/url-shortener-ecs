@@ -42,7 +42,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./app
-          platform: linux/amd64
+          platform: linux/amd6
           push: false
           load: true
           tags: |
