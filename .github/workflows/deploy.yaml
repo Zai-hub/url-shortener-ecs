@@ -26,6 +26,7 @@ jobs:
       id-token: write
       contents: read
       pull-requests: write
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,13 +53,14 @@ jobs:
         run: terraform apply -auto-approve -input=false
 
   deploy:
-    # name: Deploy to ECS
-    # needs: terraform
-    # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    name: Deploy to ECS
+    needs: terraform
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
+
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -69,7 +71,7 @@ jobs:
       - name: Register new task definition revision
         id: new-task-def
         run: |
-          
+        
           aws ecs describe-task-definition \
             --task-definition url-shortener-ecs-task \
             --query 'taskDefinition' | \
@@ -84,14 +86,37 @@ jobs:
             
             echo "new_task_arn=$NEW_ARN" >> $GITHUB_OUTPUT
             echo "New task definition: $NEW_ARN"
+
       - name: Trigger CodeDeploy
         run: |
-          APPSPEC='{"version":1,"Resources":[{"TargetService":{"Type":"AWS::ECS::Service","Properties":{"TaskDefinition":"${{ steps.new-task-def.outputs.new_task_arn }}","LoadBalancerInfo":{"ContainerName":"url-shortener-ecs-container","ContainerPort":8080}}}}]}'
+          cat > appspec.json <<EOF
+          {
+            "version": 1,
+            "Resources": [{
+              "TargetService": {
+                "Type": "AWS::ECS::Service",
+                "Properties": {
+                  "TaskDefinition": "${{ steps.new-task-def.outputs.new_task_arn }}",
+                  "LoadBalancerInfo": {
+                    "ContainerName": "url-shortener-ecs-container",
+                    "ContainerPort": 8080
+                  }
+                }
+              }
+            }]
+          }
+          EOF
+          
+          # Compact JSON
+          APPSPEC_CONTENT=$(cat appspec.json | jq -c .)
+          
+          # Trigger deployment
           aws deploy create-deployment \
             --application-name url-shortener-ecs-app \
             --deployment-group-name url-shortener-ecs-deployment-group \
             --deployment-config-name CodeDeployDefault.ECSCanary10Percent5Minutes \
-            --revision "{\"revisionType\":\"AppSpecContent\",\"appSpecContent\":{\"content\":\"$APPSPEC\"}}"
+            --revision "{\"revisionType\":\"AppSpecContent\",\"appSpecContent\":{\"content\":\"$APPSPEC_CONTENT\"}}"
+
       
       - name: Wait for deployment
         run: sleep 60
