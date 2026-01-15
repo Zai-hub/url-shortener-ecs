@@ -87,36 +87,31 @@ jobs:
             echo "new_task_arn=$NEW_ARN" >> $GITHUB_OUTPUT
             echo "New task definition: $NEW_ARN"
 
-      - name: Trigger CodeDeploy
+      - name: Build AppSpec and trigger CodeDeploy
         run: |
-          cat > appspec.json <<EOF
-          {
-            "version": 1,
-            "Resources": [{
-              "TargetService": {
-                "Type": "AWS::ECS::Service",
-                "Properties": {
-                  "TaskDefinition": "${{ steps.new-task-def.outputs.new_task_arn }}",
-                  "LoadBalancerInfo": {
-                    "ContainerName": "url-shortener-ecs-container",
-                    "ContainerPort": 8080
-                  }
-                }
-              }
-            }]
-          }
-          EOF
+          TASK_DEF=$(aws ecs describe-task-definition \
+            --task-definition url-shortener-ecs-task \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
           
-          # Compact JSON
-          APPSPEC_CONTENT=$(cat appspec.json | jq -c .)
+          printf '%s\n' \
+            'version: 0.0' \
+            'Resources:' \
+            '  - TargetService:' \
+            '      Type: AWS::ECS::Service' \
+            '      Properties:' \
+            '        TaskDefinition: "__TASK_DEF__"' \
+            '        LoadBalancerInfo:' \
+            '          ContainerName: "url-shortener-ecs-container"' \
+            '          ContainerPort: 8080' > appspec.yaml
           
-          # Trigger deployment
+          sed -i "s|__TASK_DEF__|$TASK_DEF|g" appspec.yaml
+          
           aws deploy create-deployment \
-            --application-name url-shortener-ecs-app \
-            --deployment-group-name url-shortener-ecs-deployment-group \
-            --deployment-config-name CodeDeployDefault.ECSCanary10Percent5Minutes \
-            --revision "{\"revisionType\":\"AppSpecContent\",\"appSpecContent\":{\"content\":\"$APPSPEC_CONTENT\"}}"
-
+            --application-name "${{ secrets.CODEDEPLOY_APP }}" \
+            --deployment-group-name "${{ secrets.CODEDEPLOY_GROUP }}" \
+            --deployment-config-name "CodeDeployDefault.ECSCanary10Percent5Minutes" \
+            --revision "revisionType=AppSpecContent,appSpecContent={content=file://appspec.yaml}"
       
       - name: Wait for deployment
         run: sleep 60
