@@ -110,37 +110,21 @@ jobs:
       - name: Build AppSpec and trigger CodeDeploy
         run: |
           TASK_DEF="${{ steps.new-task-def.outputs.new_task_arn }}"
-
-          NETWORK_CONFIG=$(aws ecs describe-services \
-            --cluster url-shortener-ecs-cluster \
-            --services url-shortener-ecs-service \
-            --query 'services[0].networkConfiguration.awsvpcConfiguration')
           
-          SUBNETS=$(echo $NETWORK_CONFIG | jq -c '.subnets')
-          SECURITY_GROUPS=$(echo $NETWORK_CONFIG | jq -c '.securityGroups')
-          SG=$(echo $NETWORK_CONFIG | jq -r '.securityGroups[0]')
-
           cat > appspec.yaml << EOF
           version: 0.0
           Resources:
             - TargetService:
                 Type: AWS::ECS::Service
                 Properties:
-                  TaskDefinition: "$TASK_DEF"
+                  TaskDefinition: TASK_DEF_PLACEHOLDER
                   LoadBalancerInfo:
                     ContainerName: "url-shortener-ecs-container"
                     ContainerPort: 8080
-                  PlatformVersion: "LATEST"
-                  NetworkConfiguration:
-                    AwsvpcConfiguration:
-                      Subnets:
-                        - "$SUBNET1"
-                        - "$SUBNET2"
-                      SecurityGroups:
-                        - "$SG"
-                      AssignPublicIp: "DISABLED"
           EOF
 
+          sed -i "s|TASK_DEF_PLACEHOLDER|$TASK_DEF|g" appspec.yaml
+          
           echo "Generated AppSpec:"
           cat appspec.yaml
           
