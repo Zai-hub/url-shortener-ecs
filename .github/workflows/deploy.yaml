@@ -55,8 +55,7 @@ jobs:
   deploy:
     name: Deploy to ECS
     needs: terraform
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     permissions:
       id-token: write
       contents: read
