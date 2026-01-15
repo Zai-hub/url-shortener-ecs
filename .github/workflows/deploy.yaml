@@ -151,7 +151,7 @@ jobs:
             --application-name "${{ secrets.CODEDEPLOY_APP }}" \
             --deployment-group-name "${{ secrets.CODEDEPLOY_GROUP }}" \
             --deployment-config-name "CodeDeployDefault.ECSCanary10Percent5Minutes" \
-            --revision "{\"revisionType\":\"AppSpecContent\",\"app
+            --revision 'revisionType=AppSpecContent,appSpecContent={content=file://appspec.yaml}'
       
       - name: Wait for deployment
         run: sleep 60
