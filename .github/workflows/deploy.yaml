@@ -111,18 +111,14 @@ jobs:
         run: |
           TASK_DEF="${{ steps.new-task-def.outputs.new_task_arn }}"
 
-          echo "Fetching network configuration from ECS service..."
           NETWORK_CONFIG=$(aws ecs describe-services \
             --cluster url-shortener-ecs-cluster \
             --services url-shortener-ecs-service \
-            --query 'services[0].networkConfiguration.awsvpcConfiguration' \
-            --output json)
+            --query 'services[0].networkConfiguration.awsvpcConfiguration')
           
           SUBNETS=$(echo $NETWORK_CONFIG | jq -c '.subnets')
           SECURITY_GROUPS=$(echo $NETWORK_CONFIG | jq -c '.securityGroups')
-          
-          echo "Subnets: $SUBNETS"
-          echo "Security Groups: $SECURITY_GROUPS"
+          SG=$(echo $NETWORK_CONFIG | jq -r '.securityGroups[0]')
 
           cat > appspec.yaml << EOF
           version: 0.0
@@ -137,11 +133,14 @@ jobs:
                   PlatformVersion: "LATEST"
                   NetworkConfiguration:
                     AwsvpcConfiguration:
-                      Subnets: $SUBNETS
-                      SecurityGroups: "$SECURITY_GROUPS"
+                      Subnets:
+                        - "$SUBNET1"
+                        - "$SUBNET2"
+                      SecurityGroups:
+                        - "$SG"
                       AssignPublicIp: "DISABLED"
           EOF
-        
+
           echo "Generated AppSpec:"
           cat appspec.yaml
           
@@ -151,11 +150,11 @@ jobs:
             --application-name "${{ secrets.CODEDEPLOY_APP }}" \
             --deployment-group-name "${{ secrets.CODEDEPLOY_GROUP }}" \
             --deployment-config-name "CodeDeployDefault.ECSCanary10Percent5Minutes" \
-            --revision 'revisionType=AppSpecContent,appSpecContent={content=file://appspec.yaml}'
-      
+            --revision 'revisionType=AppSpecContent,appSpecContent={content=$(cat appspec.yaml | base64 -w 0)}'
+
       - name: Wait for deployment
         run: sleep 60
-      
+
       - name: Health Check
         run: |
           curl -f https://ecs.zaitech.uk/healthz || exit 1
