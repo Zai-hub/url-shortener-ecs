@@ -115,16 +115,16 @@ jobs:
           version: 0.0
           Resources:
             - TargetService:
-                Type: AWS::ECS::Service
-                Properties:
-                  TaskDefinition: TASK_DEF_PLACEHOLDER
+              Type: AWS::ECS::Service
+              Properties:
+                  TaskDefinition: $TASK_DEF
                   LoadBalancerInfo:
                     ContainerName: "url-shortener-ecs-container"
                     ContainerPort: 8080
           EOF
 
           sed -i "s|TASK_DEF_PLACEHOLDER|$TASK_DEF|g" appspec.yaml
-          
+
           echo "Generated AppSpec:"
           cat appspec.yaml
           
@@ -134,7 +134,7 @@ jobs:
             --application-name "${{ secrets.CODEDEPLOY_APP }}" \
             --deployment-group-name "${{ secrets.CODEDEPLOY_GROUP }}" \
             --deployment-config-name "CodeDeployDefault.ECSCanary10Percent5Minutes" \
-            --revision 'revisionType=AppSpecContent,appSpecContent={content=$(cat appspec.yaml | base64 -w 0)}'
+            --revision "{\"revisionType\":\"AppSpecContent\",\"appSpecContent\":{\"content\":\"${APPSPEC_B64}\"}}"
 
       - name: Wait for deployment
         run: sleep 60
