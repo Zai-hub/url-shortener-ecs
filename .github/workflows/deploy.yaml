@@ -138,7 +138,7 @@ jobs:
                   NetworkConfiguration:
                     AwsvpcConfiguration:
                       Subnets: $SUBNETS
-                      SecurityGroups: $SECURITY_GROUPS
+                      SecurityGroups: "$SECURITY_GROUPS"
                       AssignPublicIp: "DISABLED"
           EOF
         
