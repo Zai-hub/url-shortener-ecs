@@ -110,7 +110,20 @@ jobs:
       - name: Build AppSpec and trigger CodeDeploy
         run: |
           TASK_DEF="${{ steps.new-task-def.outputs.new_task_arn }}"
-        
+
+          echo "Fetching network configuration from ECS service..."
+          NETWORK_CONFIG=$(aws ecs describe-services \
+            --cluster url-shortener-ecs-cluster \
+            --services url-shortener-ecs-service \
+            --query 'services[0].networkConfiguration.awsvpcConfiguration' \
+            --output json)
+          
+          SUBNETS=$(echo $NETWORK_CONFIG | jq -c '.subnets')
+          SECURITY_GROUPS=$(echo $NETWORK_CONFIG | jq -c '.securityGroups')
+          
+          echo "Subnets: $SUBNETS"
+          echo "Security Groups: $SECURITY_GROUPS"
+
           cat > appspec.yaml << EOF
           version: 0.0
           Resources:
@@ -121,6 +134,12 @@ jobs:
                   LoadBalancerInfo:
                     ContainerName: "url-shortener-ecs-container"
                     ContainerPort: 8080
+                  PlatformVersion: "LATEST"
+                  NetworkConfiguration:
+                    AwsvpcConfiguration:
+                      Subnets: $SUBNETS
+                      SecurityGroups: $SECURITY_GROUPS
+                      AssignPublicIp: "DISABLED"
           EOF
         
           echo "Generated AppSpec:"
@@ -132,7 +151,7 @@ jobs:
             --application-name "${{ secrets.CODEDEPLOY_APP }}" \
             --deployment-group-name "${{ secrets.CODEDEPLOY_GROUP }}" \
             --deployment-config-name "CodeDeployDefault.ECSCanary10Percent5Minutes" \
-            --revision "{\"revisionType\":\"AppSpecContent\",\"appSpecContent\":{\"content\":$APPSPEC_CONTENT}}"
+            --revision "{\"revisionType\":\"AppSpecContent\",\"app
       
       - name: Wait for deployment
         run: sleep 60
