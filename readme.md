@@ -54,7 +54,7 @@ All infrastructure is managed using **Terraform** and CI/CD is implemented with 
 └── .gitignore
 ```
 
-## ✨ Features
+## Features
 
 - Containerised URL shortener application using Docker.
 - Deployed on AWS ECS Fargate (serverless containers).
@@ -85,8 +85,84 @@ This project follows a full CI/CD and Blue/Green deployment workflow:
 ---
 
 ## Application Verification
+This section provides visual evidence that the application and infrastructure are working as intended.
 
-### Health Check
+### Application Functionality (Terminal)
+The following screenshots demonstrate successful interaction with the deployed service using `curl` from the terminal:
+- Health check endpoint responding successfully
+- URL shortening endpoint returning a short code
+- Short URL correctly redirecting to the original destination via HTTPS redirect
+
+### Health Check:
 ```bash
+# Verifies Service is reachable
 curl https://ecs.zaitech.uk/healthz
 ```
+![Health Check](./images/Screenshot%202026-01-15%20at%2017.43.09.png)
+
+### Create URL
+```bash
+# Create a short URL
+curl -X POST https://ecs.zaitech.uk/shorten \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com"}'
+```
+![URL Input](./images/Screenshot%202026-01-15%20at%2017.43.46.png)
+
+### URL Redirect
+```bash
+# Verify redirect behaviour (status code + redirect target)
+curl -s -o /dev/null -w "%{http_code} → %{redirect_url}\n" \
+  https://ecs.zaitech.uk/100680ad
+```
+![URL Input](./images/Screenshot%202026-01-15%20at%2017.46.36.png)
+![URL Input](./images/Screenshot%202026-01-15%20at%2017.46.08.png)
+
+---
+
+### CI Pipeline (Build)
+The screenshots show the continuous integration pipeline running on GitHub Actions:
+- Docker image build
+- Image pushed to Amazon ECR
+- Successful completion of all CI steps
+
+![Build.deply](./images/Screenshot%202026-01-12%20at%2022.39.00.png)
+
+---
+
+### CD Pipeline (Deploy)
+The following screenshots demonstrate the continuous deployment process:
+- Terraform plan and apply executing successfully
+- ECS service updates and task definition registration
+- AWS CodeDeploy blue/green deployment in progress and completed
+
+![URL Input](./images/Screenshot%202026-01-13%20at%2004.16.03.png)
+
+![URL Input](./images/Screenshot%202026-01-13%20at%2004.16.15.png)
+
+---
+
+### AWS Infrastructure Verification
+The screenshots below confirm the AWS infrastructure configuration:
+- CodeDeploy deployment showing blue/green traffic shifting
+- Target groups with healthy ECS tasks
+- Application Load Balancer associated with AWS WAF
+- VPC endpoints enabling private access to AWS services
+
+![URL Input](./images/Screenshot%202026-01-15%20at%2014.50.30.png)
+
+![URL Input](./images/Screenshot%202026-01-15%20at%2014.51.24.png)
+---
+
+---
+
+## Conclusion
+This project demonstrates a production-style AWS deployment using containerised services, infrastructure as code, and secure CI/CD practices.
+
+It showcases:
+- Zero-downtime blue/green deployments with AWS CodeDeploy
+- Private networking with VPC endpoints
+- Secure CI/CD using GitHub Actions and OIDC
+- End-to-end infrastructure automation with Terraform
+
+The project was fully tested and torn down after validation to minimise AWS costs.
